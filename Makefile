@@ -1,4 +1,4 @@
-.PHONY: all run_antivirus run_restore
+.PHONY: run_antivirus run_restore
 
 run_antivirus:
 	@mkdir -p "malicious_dir"
