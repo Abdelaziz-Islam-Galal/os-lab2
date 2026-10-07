@@ -10,6 +10,7 @@ bash script for a simple antivirus quarantine and restoring files
 ├── Makefile          # Shortcuts for running both tools with default arguments
 ├── antivirusd.sh     # Monitoring/scanning daemon
 ├── restore.sh        # Interactive quarantine review and restore tool
+├── antivirus-cron.sh # One-shot scan meant to be run by cron
 ├── README.md         # This file
 │
 ├── dir/              # (created at runtime if not already present) monitored directory
@@ -42,6 +43,13 @@ bash script for a simple antivirus quarantine and restoring files
    - **3** – Leave it as is and return to the list.
 4. Repeats until you quit or the quarantine is empty.
 
+**`antivirus-cron.sh`** takes two mandatory arguments: `[dir] [malicious_dir]`
+
+1. cron starts it at second 0 of every minute, the scan runs at second 23.
+2. Scans every file in `dir` once, using the same rules as `antivirusd.sh` (flagged extension or flagged whole-word keyword).
+3. Copies flagged files to `malicious_dir`, deletes them from `dir`, and prints a timestamped message.
+4. Exits. (A lock prevents two runs from overlapping.)
+
 **`Makefile`** provides two convenience targets:
 
 | Target               | Runs                                                                                         |
@@ -53,11 +61,11 @@ bash script for a simple antivirus quarantine and restoring files
 
 The scripts use only standard command-line tools (`bash`, `grep`, and the GNU coreutils (`ls`, `cp`, `rm`, `mkdir`, `sleep`)) that should be preinstalled with Ubuntu, and `make` is the only one that may be missing.
 
-| Requirement                              | Used for                                |
-| ---------------------------------------- | --------------------------------------- |
-| `bash`                                   | Running the scripts                     |
-| `grep`, `coreutils`, `diffutils` (`cmp`) | Scanning, copying, and comparing snapshots  |
-| `make`                                   | Using the Makefile shortcuts |
+| Requirement                              | Used for                                   |
+| ---------------------------------------- | ------------------------------------------ |
+| `bash`                                   | Running the scripts                        |
+| `grep`, `coreutils`, `diffutils` (`cmp`) | Scanning, copying, and comparing snapshots |
+| `make`                                   | Using the Makefile shortcuts               |
 
 Install on Ubuntu:
 
@@ -112,7 +120,8 @@ make run_restore
 
 ## 4. Where the flagged lists are defined
 
-Both lists are defined at the top of **`antivirusd.sh`**, on lines 3 and 4:
+Both lists are defined at the top of **`antivirusd.sh`**, on lines 3 and 4\
+(same goes for **`antivirus-cron.sh`**):
 
 ```bash
 flagged_extensions=(.exe .bat .vbs .scr .ps1)
@@ -120,3 +129,53 @@ flagged_content=(virus trojan malware worm ransomware)
 ```
 
 To change what gets flagged, edit these arrays, adding or removing space-separated entries. Extensions include the leading dot, and keywords are plain words.
+
+## 5. Scheduling the scan with cron (every minute, at second 23)
+
+### Prerequisites
+
+1. **The cron service is installed and running.** (It is usually preinstalled on Ubuntu)
+   ```bash
+   sudo apt update
+   sudo apt install -y crond           # install if missing
+   sudo systemctl enable --now crond   # start now and on every boot
+   systemctl status crond              # should say "active (running)"
+   ```
+2. **`flock`** (from `util-linux`) must exist, and it is preinstalled on Ubuntu. Check with `flock --version`.
+3. **All project files are in place**: `antivirus-cron.sh` in the project folder, and the `dir/` folder to monitor (the script creates `dir/` and `malicious_dir/` if missing).
+4. **Stop `antivirusd.sh`** (`Ctrl+C`) and do not run `restore.sh` while the cron job is active. The tools should not run concurrently.
+
+### Step-by-step
+
+1. **Open a terminal in the project folder and note its path:**
+   ```bash
+   pwd
+   ```
+   output is `path/to/project/folder`
+
+2. **Open your crontab for editing**:
+   ```bash
+   crontab -e
+   ```
+
+3. **Add this line at the end** (one single line, with your own absolute path):
+   ```cron
+   * * * * * path/to/project/folder/antivirus-cron.sh path/to/dir/folder path/to/malicious_dir/folder
+   ```
+   | Part                                      | Meaning                                                                            |
+   | ----------------------------------------- | ---------------------------------------------------------------------------------- |
+   | `* * * * *`                               | every minute                                                                       |
+   | `antivirus-cron.sh ... dir malicious_dir` | the script, with the monitored and quarantine directories                          |
+   | `>> antivirus-cron.log 2>&1`              | append normal output and errors to a log file (otherwise cron tries to email them) |
+
+   > The script sleeps 23 seconds after cron starts it, so the scan runs at second 23 of every minute.
+
+4. **Save and exit** (in `nano`: `Ctrl+O`, `Enter`, `Ctrl+X`).
+
+5. **Confirm the job is installed:**
+   ```bash
+   crontab -l
+   ```
+   > you should see the line you just added 
+
+6. **To stop the job**, run `crontab -e` and delete (or comment out with `#`) the line.

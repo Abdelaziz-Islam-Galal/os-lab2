@@ -42,21 +42,22 @@ scan_files() {
     done
 }
 
-if [[ $# -ne 3 ]]
+if [[ $# -ne 2 ]]
 then
 echo
 echo "insuffecient arguments"
 echo 
-echo "Usage arguments: <dir> <malicious_dir> <interval-secs>"
+echo "Usage arguments: <dir> <malicious_dir>"
 echo "dir — the source directory being monitored (files only, no subdirectories)"
 echo "malicious_dir — the destination directory where flagged/quarantined files are copied"
-echo "interval-secs — time to wait between every check"
 echo
 exit 1
 else
 dir="$1"
 malicious_dir="$2"
-interval_secs="$3"
+path_malicious_dir="${malicious_dir%/*}"
+directory_info_last="$path_malicious_dir/directory-info.last"
+directory_info_new="$path_malicious_dir/directory-info.new"
 fi
 
 # create directories if they don't exist
@@ -64,30 +65,28 @@ fi
 mkdir -p "$dir"
 mkdir -p "$malicious_dir"
 
-ls -l "$dir" > directory-info.last
+sleep 23
 
-scan_files "$dir" "$malicious_dir"
-
-while true
-do
-    sleep "$interval_secs"
+if [[ ! -e "$directory_info_last" ]]
+then
+    ls -l "$dir" > "$directory_info_last"
+    scan_files "$dir" "$malicious_dir"
+else
+    ls -l "$dir" > "$directory_info_new"
     
-    ls -l "$dir" > directory-info.new
-    
-    cmp -s directory-info.last directory-info.new # the -s is to stop oitput appearing in the terminal
+    cmp -s "$directory_info_last" "$directory_info_new" # the -s is to stop oitput appearing in the terminal
     compare=$?
     
     if [[ 2 -eq "$compare" ]]
     then
         echo "error occured in comparing new and old status"
-        continue
+        exit 2
     elif [[ 1 -eq "$compare" ]]
     then
         scan_files "$dir" "$malicious_dir"
     fi
 
-    cp directory-info.new directory-info.last
-done
-
+    cp "$directory_info_new" "$directory_info_last"
+fi
 
 
