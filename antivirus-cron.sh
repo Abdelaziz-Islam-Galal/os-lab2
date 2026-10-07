@@ -60,6 +60,12 @@ directory_info_last="$path_malicious_dir/directory-info.last"
 directory_info_new="$path_malicious_dir/directory-info.new"
 fi
 
+if [[ $dir == $malicious_dir ]]
+then
+    echo "Error: dir and malicious_dir cannot be the same."
+    exit 1
+fi
+
 # create directories if they don't exist
 # -p option ensures that no error is thrown if the directory already exists
 mkdir -p "$dir"

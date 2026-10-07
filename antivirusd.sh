@@ -9,6 +9,8 @@ scan_files() {
     
     files=("$dir"/*)
 
+    IFS=$'\n' white_list=($(cat "$white_list_file")) # IFS = Internal Field Separator
+
     if [[ "${files[0]}" == "$dir/*" ]] # in practive if there are no files it returns the string "$dir/*"
     then
         return 0 # of no files in dir skip scan
@@ -35,9 +37,19 @@ scan_files() {
         done
         if [[ $is_malicious == true ]] # needed to put the condidition where removing file occurs at the end to avoid an error 
         then
-            echo "${file_path##*/} is malicious and it is DELETED"
-            cp "$file_path" "$malicious_dir"
-            rm -f "$file_path"
+            for white_file in "${white_list[@]}"; do
+                if [[ "${file_path##*/}" == "$white_file" ]]
+                then
+                    is_malicious=false
+                    break
+                fi
+            done
+            if [[ $is_malicious == true ]]
+            then
+                echo "${file_path##*/} is malicious and it is DELETED"
+                cp "$file_path" "$malicious_dir"
+                rm -f "$file_path"
+            fi
         fi
     done
 }
@@ -59,10 +71,19 @@ malicious_dir="$2"
 interval_secs="$3"
 fi
 
+if [[ $dir == $malicious_dir ]]
+then
+    echo "Error: dir and malicious_dir cannot be the same."
+    exit 1
+fi
+
 # create directories if they don't exist
 # -p option ensures that no error is thrown if the directory already exists
 mkdir -p "$dir"
 mkdir -p "$malicious_dir"
+
+white_list_file="$malicious_dir/white.list"
+touch "$white_list_file" # create file if it doesn't exist to avoid error with cat
 
 ls -l "$dir" > directory-info.last
 
