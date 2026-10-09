@@ -1,3 +1,4 @@
-total 8
--rw-r--r--. 1 abdelaziz abdelaziz 10 Oct  7 18:41 test2
--rw-r--r--. 1 abdelaziz abdelaziz  8 Oct  7 18:41 test 3.exe
+total 4
+-rw-r--r--. 1 abdelaziz abdelaziz 8 Oct  7 18:41 test 3.exe
+-rw-r--r--. 1 abdelaziz abdelaziz 0 Oct  7 18:42 test4.exe.txt
+-rw-r--r--. 1 abdelaziz abdelaziz 0 Oct  9 01:45 testing,exe

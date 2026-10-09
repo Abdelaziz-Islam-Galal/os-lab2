@@ -36,10 +36,10 @@ scan_files() {
         if [[ $is_malicious == true ]] # needed to put the condidition where removing file occurs at the end to avoid an error 
         then
             echo "${file_path##*/} is malicious and it is DELETED"
-            cp "$file_path" "$malicious_dir"
-            rm -f "$file_path"
+            mv "$file_path" "$malicious_dir"
         fi
     done
+    ls -l "$dir" > "$directory_info_new"
 }
 
 if [[ $# -ne 2 ]]
@@ -76,6 +76,7 @@ sleep 23
 if [[ ! -e "$directory_info_last" ]]
 then
     ls -l "$dir" > "$directory_info_last"
+    ls -l "$dir" > "$directory_info_new"
     scan_files "$dir" "$malicious_dir"
 else
     ls -l "$dir" > "$directory_info_new"
@@ -91,8 +92,8 @@ else
     then
         scan_files "$dir" "$malicious_dir"
     fi
-
-    cp "$directory_info_new" "$directory_info_last"
 fi
+
+cp "$directory_info_new" "$directory_info_last"
 
 

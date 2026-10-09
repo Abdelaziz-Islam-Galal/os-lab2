@@ -38,7 +38,7 @@ scan_files() {
         if [[ $is_malicious == true ]] # needed to put the condidition where removing file occurs at the end to avoid an error 
         then
             for white_file in "${white_list[@]}"; do
-                if [[ "${file_path##*/}" == "$white_file" ]]
+                if [[ "$(date -r "${file_path}") ${file_path##*/}" == "$white_file" ]]
                 then
                     is_malicious=false
                     break
@@ -47,11 +47,11 @@ scan_files() {
             if [[ $is_malicious == true ]]
             then
                 echo "${file_path##*/} is malicious and it is DELETED"
-                cp "$file_path" "$malicious_dir"
-                rm -f "$file_path"
+                mv "$file_path" "$malicious_dir"
             fi
         fi
     done
+    ls -l "$dir" > directory-info.new
 }
 
 if [[ $# -ne 3 ]]

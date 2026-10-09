@@ -62,10 +62,9 @@ while true; do
 
         case "$action" in 
             "1")
-                cp "$file_path" "$dir"
-                rm -f "$file_path"
-                echo "${file_path##*/}" >> "$white_list" # add the restored file to the white list
-                echo "Restored ${file_path##*/} to <dir>."
+                printf '%s %s\n' "$(date -r "${file_path}")" "${file_path##*/}" >> "$white_list" # add the restored file name + date modified to the white list
+                mv "$file_path" "$dir"
+                echo "Restored ${file_path##*/} to $dir."
                 ;;
             "2")
                 rm -f "$file_path"
